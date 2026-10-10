@@ -1,29 +1,38 @@
 ---
 title: "Homework 1: Map-making and Environmental Justice"
-subtitle: "Mapping low-income households and proximity to superfund sites in Virginia"
+subtitle: "Mapping EJScreen data across Census Block Groups in Loudoun County, VA, with a focus on demographic indices, air quality, and data center proximity"
 author: "Courtney Lorey"
-date: 2025-10-5
+date: 2026-10-10
 ---
 
 # Description
+Loudoun County, Virginia is known for having 1) the [highest median household income](https://www.census.gov/library/visualizations/interactive/median-household-income.html) in the US, and 2) the [largest concentration of data centers](https://www.loudoun.gov/6188/Data-Centers-in-Loudoun-County) in the world, with 233 active sites as of March 2026. These data centers are clustered in the southeastern part of the county (as shown in [this map](https://experience.arcgis.com/experience/0c2021535c3f47589d1a10d6d0e2948c/)), and make up an area colloquially known as "data center alley." Data centers are known to [release harmful air pollutants](https://www.wri.org/insights/us-data-center-growth-impacts) and have a measurable negative impact on air quality.
 
 # Objective
+Use 2023 EJScreen data to visualize the EJScreen Demographic Index — a measure which combines percent low-income and percent people of color — as well as the annual average particulate matter across census block groups in Loudoun County, VA. Compare these visualizations to one another, and to where data centers are known to exist in Loudoun County. 
 
 # Load packages
 ```{r}
+#| echo: true
+#| output: false
+#| 
 library(tidyverse)
 library(sf)
 library(here)
 library(tmap)
+library(viridisLite)
 ```
 
 # Import data
 
-1. Load necessary packages, import the ejscreen data, filter to relevant locations (in this case state and county), and find averages within counties.  
+Import the EJScreen data, filter to Virginia and Loudoun County. 
 
 ```{r}
+#| echo: true
+#| output: false
+
 # read in geodatabase of EJScreen data at the Census Block Group level
-ejscreen <- sf::st_read(here::here("eds223-hw1", "data", "ejscreen","EJSCREEN_2023_BG_StatePct_with_AS_CNMI_GU_VI.gdb")) 
+ejscreen <- sf::st_read(here::here("data", "ejscreen","EJSCREEN_2023_BG_StatePct_with_AS_CNMI_GU_VI.gdb")) 
 
 # filter to Virginia
 virginia <- ejscreen %>%
@@ -32,12 +41,44 @@ virginia <- ejscreen %>%
 # filter to Loudoun County
 loudoun <- ejscreen %>%
   dplyr::filter(CNTY_NAME %in% c("Loudoun County"))
-
-# find the average values for all variables within counties
-virginia_counties <- aggregate(virginia, by = list(virginia$CNTY_NAME), FUN = mean)
 ```
 
 # Visualize data
 
+ ```{r}
+ tm_shape(loudoun) +
+  tm_polygons() + 
+  tm_fill(
+    fill = "DEMOGIDX_2",
+    fill.legend = tm_legend(title = "Demographic Index (%)", position = tm_pos_out("right"))
+  ) +
+  tm_title(text = "Demographic Index in Loudoun County, VA") +
+  tm_compass() +
+  tm_scalebar(position = c("left", "bottom")) +
+  tm_credits("Figure 1", position = tm_pos_out("center", "bottom"));
+ ```
+
+```{r}
+ tm_shape(loudoun) +
+  tm_polygons(
+    fill = "PM25",
+    fill.scale = tm_scale(values = viridis(8)),
+    fill.legend = tm_legend(title = "PM 2.5 (µg/m3)")
+    ) + 
+  tm_title(text = "Annual Average PM 2.5 in Loudoun County, VA") +
+  tm_compass() +
+  tm_scalebar(position = c("left", "bottom")) +
+  tm_credits("Figure 2", position = tm_pos_out("center", "bottom"));
+```
 
 # Map interpretation 
+
+Despite the high median household income of Loudoun County, there are still pockets of low-income areas. The first map of the EJScreen Demographic Index shows that the highest proportion of both low-income communities and people of color in Loudoun County are primarily located in the same southeastern corner as "data center alley." (Figure 1)
+
+The second map shows the annual average concentration of fine particulate matter (PM 2.5) in Loudoun County, with higher values also concentrated in the southeastern part of the county. (Figure 2) The occurrence of elevated PM 2.5 levels overlaps with both "data center alley" and areas with a higher EJScreen Demographic Index. The [World Health Organization air quality guidelines](https://apps.who.int/iris/bitstream/handle/10665/345334/9789240034433-eng.pdf) state that annual average PM 2.5 concentrations should not exceed 5 micrograms per cubic meter (µg/m3). In the light green and yellow Census Block Groups of this map, annual average concentrations approach and exceed 8 µg/m3. 
+
+Data centers aside, these maps suggest that low income communities and people of color in Loudoun County may be disproportionately impacted by harmful air pollutants, regardless of their cause. Further analysis on the relationship between poor air quality and proximity to data centers in Loudoun County would be beneficial, as the latter was not an indicator of EJScreen. With data centers becoming more prevalent across the US, a data center proximity indicator (similar to the superfund proximity indicator) would be a useful future addition to the EJScreen tool. 
+
+# Data citations
+
+United States Environmental Protection Agency. 2023. EJSCREEN. Retrieved: October 10, 2026, from [https://drive.google.com/file/d/1nG6Nj1bXfzQFOVMO8Km3eNy4SWu1YcIQ/view?usp=sharing](https://drive.google.com/file/d/1nG6Nj1bXfzQFOVMO8Km3eNy4SWu1YcIQ/view?usp=sharing)
